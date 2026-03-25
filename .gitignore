@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv
+
+# Data
+data/processed/
+data/index/
+artifacts/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# C++
+build/
+*.o
+*.so
+*.dll
+*.dylib
+
+# IDE
+.vscode/
+.idea/
