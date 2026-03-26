@@ -18,3 +18,14 @@ Project initialized. Core components under development.
 
 ### Create virtual environment
 python -m venv .venv
+
+## Configuration
+
+DriveIQ uses YAML-based configuration files stored in the `configs/` directory.
+
+Current config files:
+- `configs/app.yaml`
+- `configs/retrieval.yaml`
+- `configs/eval.yaml`
+
+These control runtime settings such as paths, retrieval parameters, embedding model selection, and evaluation behavior.

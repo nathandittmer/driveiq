@@ -1,0 +1,14 @@
+app_name: DriveIQ
+evironment: dev
+log_level: INFO
+
+paths:
+  raw_data_dir: data/raw
+  processed_data_dir: data/processed
+  index_data_dir: data/index
+  eval_data_dir: data/eval
+  artifacts_dir: artifacts
+
+api:
+  host: 127.0.0.1
+  port: 8000

@@ -1,0 +1,11 @@
+chunking:
+  chunk_size: 500
+  chunk_overlap: 75
+
+retrieval:
+  top_k: 5
+  score_function: cosine
+
+embedding:
+  provider: sentence_transformers
+  model_name: all-MiniLM-L6-v2
