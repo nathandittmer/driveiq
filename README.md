@@ -13,3 +13,8 @@ The system ingests documents (PDFs, text, transcripts, images), builds a retriev
 
 ## Status
 Project initialized. Core components under development.
+
+## Local Setup
+
+### Create virtual environment
+python -m venv .venv
