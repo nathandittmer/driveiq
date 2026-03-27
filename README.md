@@ -29,3 +29,21 @@ Current config files:
 - `configs/eval.yaml`
 
 These control runtime settings such as paths, retrieval parameters, embedding model selection, and evaluation behavior.
+
+## Logging and Artifacts
+
+DriveIQ writes timestamped run artifacts under `artifacts/runs/` and is designed to support traceable indexing, retrieval, and evaluation workflows.
+
+A lightweight CLI smoke test can be run with:
+
+    PYTHONPATH=src python -m driveiq.cli
+
+## Core Data Contracts
+
+DriveIQ uses typed Pydantic schemas for core objects such as:
+- documents
+- chunks
+- retrieval responses
+- summarization and Q&A responses
+
+These schemas provide clean interfaces between ingestion, retrieval, generation, and evaluation components.
