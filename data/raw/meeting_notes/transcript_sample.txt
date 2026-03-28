@@ -1,0 +1,3 @@
+[00:00] Alice: We should improve document retrieval quality before expanding to more file types.
+[00:08] Bob: Agreed. We also need a consistent loader contract for all ingested files.
+[00:15] Alice: Let's prioritize metadata quality and chunk traceability.

@@ -4,6 +4,7 @@ from datetime import datetime
 from pathlib import Path
 
 from driveiq.config import get_settings
+from driveiq.ingestion.loader import load_documents
 from driveiq.logging_utils import configure_logging, ensure_directory, get_logger
 
 
@@ -26,17 +27,29 @@ def main() -> None:
     logger.info("Artifacts dir: %s", artifacts_dir)
     logger.info("Created run directory: %s", run_dir)
 
+    documents = load_documents(settings.app.paths.raw_data_dir)
+    logger.info("Loaded %d document(s) from raw data directory", len(documents))
+
     marker_file = run_dir / "run_info.txt"
-    marker_file.write_text(
-        "\n".join(
-            [
-                f"app_name={settings.app.app_name}",
-                f"environment={settings.app.environment}",
-                f"run_dir={run_dir}",
-            ]
-        ),
-        encoding="utf-8",
-    )
+    marker_lines = [
+        f"app_name={settings.app.app_name}",
+        f"environment={settings.app.environment}",
+        f"run_dir={run_dir}",
+        f"document_count={len(documents)}",
+    ]
+
+    for doc in documents:
+        logger.info(
+            "Document loaded | id=%s | type=%s | file=%s",
+            doc.document_id,
+            doc.document_type,
+            doc.metadata.filename,
+        )
+        marker_lines.append(
+            f"document={doc.document_id}|{doc.document_type}|{doc.metadata.filename}"
+        )
+
+    marker_file.write_text("\n".join(marker_lines), encoding="utf-8")
 
     logger.info("Wrote marker file: %s", marker_file)
     logger.info("DriveIQ CLI smoke test complete")

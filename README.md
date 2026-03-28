@@ -47,3 +47,15 @@ DriveIQ uses typed Pydantic schemas for core objects such as:
 - summarization and Q&A responses
 
 These schemas provide clean interfaces between ingestion, retrieval, generation, and evaluation components.
+
+## Raw File Loading
+
+DriveIQ begins ingestion by scanning `data/raw/` recursively, identifying supported file types, and creating typed document records with metadata.
+
+Current supported discovery types:
+- `.txt`
+- `.md`
+- `.pdf`
+- `.png`
+- `.jpg`
+- `.jpeg`

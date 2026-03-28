@@ -1,0 +1,8 @@
+Project Atlas weekly update
+
+The retrieval prototype is now returning grounded answers for internal test queries.
+Next steps include parser hardening, chunk quality review, and evaluation dataset creation.
+
+Open risks:
+- PDF extraction quality varies by document format.
+- We need better handling for meeting transcripts and OCR-derived text.
