@@ -59,3 +59,7 @@ Current supported discovery types:
 - `.png`
 - `.jpg`
 - `.jpeg`
+
+## Text Parsing
+
+DriveIQ uses a dedicated text parser for `.txt` and `.md` files. The parser performs lightweight normalization and emits parser metadata that is stored alongside each document record.
