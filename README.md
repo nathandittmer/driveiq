@@ -63,3 +63,7 @@ Current supported discovery types:
 ## Text Parsing
 
 DriveIQ uses a dedicated text parser for `.txt` and `.md` files. The parser performs lightweight normalization and emits parser metadata that is stored alongside each document record.
+
+## PDF Parsing
+
+DriveIQ includes a dedicated PDF parser built with PyMuPDF. The parser extracts text page by page and stores page-level metadata for future chunking, retrieval traceability, and evaluation workflows.

@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Iterable
 from uuid import uuid4
 
+from driveiq.ingestion.pdf_parser import parse_pdf_file
 from driveiq.ingestion.text_parser import is_text_file, parse_text_file
 from driveiq.schemas.document import DocumentMetadata, DocumentRecord
 
@@ -30,6 +31,10 @@ def is_supported_file(path: Path) -> bool:
 def extract_text_and_extra_metadata(path: Path) -> tuple[str, dict]:
     if is_text_file(path):
         return parse_text_file(path)
+
+    if path.suffix.lower() == ".pdf":
+        return parse_pdf_file(path)
+
     return "", {}
 
 
