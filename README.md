@@ -67,3 +67,7 @@ DriveIQ uses a dedicated text parser for `.txt` and `.md` files. The parser perf
 ## PDF Parsing
 
 DriveIQ includes a dedicated PDF parser built with PyMuPDF. The parser extracts text page by page and stores page-level metadata for future chunking, retrieval traceability, and evaluation workflows.
+
+## Transcript Parsing
+
+DriveIQ includes a transcript parser for meeting-style text files. Transcript lines with timestamp and speaker structure are normalized into retrieval-friendly text and enriched with speaker and utterance metadata.

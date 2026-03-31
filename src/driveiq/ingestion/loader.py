@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from driveiq.ingestion.pdf_parser import parse_pdf_file
 from driveiq.ingestion.text_parser import is_text_file, parse_text_file
+from driveiq.ingestion.transcript_parser import looks_like_transcript, parse_transcript_file
 from driveiq.schemas.document import DocumentMetadata, DocumentRecord
 
 
@@ -21,6 +22,14 @@ SUPPORTED_EXTENSIONS = {
 
 
 def infer_document_type(path: Path) -> str:
+    if path.suffix.lower() == ".txt":
+        try:
+            raw_text = path.read_text(encoding="utf-8")
+            if looks_like_transcript(raw_text):
+                return "transcript"
+        except Exception:
+            pass
+
     return SUPPORTED_EXTENSIONS.get(path.suffix.lower(), "unknown")
 
 
@@ -29,7 +38,13 @@ def is_supported_file(path: Path) -> bool:
 
 
 def extract_text_and_extra_metadata(path: Path) -> tuple[str, dict]:
-    if is_text_file(path):
+    if path.suffix.lower() == ".txt":
+        raw_text = path.read_text(encoding="utf-8")
+        if looks_like_transcript(raw_text):
+            return parse_transcript_file(path)
+        return parse_text_file(path)
+
+    if path.suffix.lower() == ".md":
         return parse_text_file(path)
 
     if path.suffix.lower() == ".pdf":
