@@ -5,8 +5,9 @@ from pathlib import Path
 from typing import Iterable
 from uuid import uuid4
 
+from driveiq.ingestion.image_parser import is_image_file, parse_image_file
 from driveiq.ingestion.pdf_parser import parse_pdf_file
-from driveiq.ingestion.text_parser import is_text_file, parse_text_file
+from driveiq.ingestion.text_parser import parse_text_file
 from driveiq.ingestion.transcript_parser import looks_like_transcript, parse_transcript_file
 from driveiq.schemas.document import DocumentMetadata, DocumentRecord
 
@@ -38,17 +39,22 @@ def is_supported_file(path: Path) -> bool:
 
 
 def extract_text_and_extra_metadata(path: Path) -> tuple[str, dict]:
-    if path.suffix.lower() == ".txt":
+    suffix = path.suffix.lower()
+
+    if suffix == ".txt":
         raw_text = path.read_text(encoding="utf-8")
         if looks_like_transcript(raw_text):
             return parse_transcript_file(path)
         return parse_text_file(path)
 
-    if path.suffix.lower() == ".md":
+    if suffix == ".md":
         return parse_text_file(path)
 
-    if path.suffix.lower() == ".pdf":
+    if suffix == ".pdf":
         return parse_pdf_file(path)
+
+    if is_image_file(path):
+        return parse_image_file(path)
 
     return "", {}
 

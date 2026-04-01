@@ -71,3 +71,7 @@ DriveIQ includes a dedicated PDF parser built with PyMuPDF. The parser extracts 
 ## Transcript Parsing
 
 DriveIQ includes a transcript parser for meeting-style text files. Transcript lines with timestamp and speaker structure are normalized into retrieval-friendly text and enriched with speaker and utterance metadata.
+
+## Image Parsing
+
+DriveIQ includes an image parser stub for `.png`, `.jpg`, and `.jpeg` files. The current implementation establishes the ingestion contract and metadata structure for future OCR or caption-based extraction.
