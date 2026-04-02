@@ -75,3 +75,7 @@ DriveIQ includes a transcript parser for meeting-style text files. Transcript li
 ## Image Parsing
 
 DriveIQ includes an image parser stub for `.png`, `.jpg`, and `.jpeg` files. The current implementation establishes the ingestion contract and metadata structure for future OCR or caption-based extraction.
+
+## Normalization Layer
+
+DriveIQ applies a lightweight normalization step after parsing to standardize whitespace, reduce formatting noise, and preserve retrieval-friendly text structure across file types.

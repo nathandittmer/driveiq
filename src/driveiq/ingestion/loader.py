@@ -9,6 +9,7 @@ from driveiq.ingestion.image_parser import is_image_file, parse_image_file
 from driveiq.ingestion.pdf_parser import parse_pdf_file
 from driveiq.ingestion.text_parser import parse_text_file
 from driveiq.ingestion.transcript_parser import looks_like_transcript, parse_transcript_file
+from driveiq.processing.normalize import normalize_parsed_output
 from driveiq.schemas.document import DocumentMetadata, DocumentRecord
 
 
@@ -44,17 +45,23 @@ def extract_text_and_extra_metadata(path: Path) -> tuple[str, dict]:
     if suffix == ".txt":
         raw_text = path.read_text(encoding="utf-8")
         if looks_like_transcript(raw_text):
-            return parse_transcript_file(path)
-        return parse_text_file(path)
+            parsed_text, parser_metadata = parse_transcript_file(path)
+            return normalize_parsed_output(parsed_text, parser_metadata)
+
+        parsed_text, parser_metadata = parse_text_file(path)
+        return normalize_parsed_output(parsed_text, parser_metadata)
 
     if suffix == ".md":
-        return parse_text_file(path)
+        parsed_text, parser_metadata = parse_text_file(path)
+        return normalize_parsed_output(parsed_text, parser_metadata)
 
     if suffix == ".pdf":
-        return parse_pdf_file(path)
+        parsed_text, parser_metadata = parse_pdf_file(path)
+        return normalize_parsed_output(parsed_text, parser_metadata)
 
     if is_image_file(path):
-        return parse_image_file(path)
+        parsed_text, parser_metadata = parse_image_file(path)
+        return normalize_parsed_output(parsed_text, parser_metadata)
 
     return "", {}
 
