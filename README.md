@@ -79,3 +79,7 @@ DriveIQ includes an image parser stub for `.png`, `.jpg`, and `.jpeg` files. The
 ## Normalization Layer
 
 DriveIQ applies a lightweight normalization step after parsing to standardize whitespace, reduce formatting noise, and preserve retrieval-friendly text structure across file types.
+
+## Processed Document Artifacts
+
+After ingestion and normalization, DriveIQ writes processed document records to `data/processed/` as JSON artifacts. A manifest file is also produced to summarize the processed batch.

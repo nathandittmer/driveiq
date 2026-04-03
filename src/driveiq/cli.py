@@ -6,6 +6,7 @@ from pathlib import Path
 from driveiq.config import get_settings
 from driveiq.ingestion.loader import load_documents
 from driveiq.logging_utils import configure_logging, ensure_directory, get_logger
+from driveiq.processing.metadata import write_processed_documents
 
 
 def create_run_directory(base_dir: str, prefix: str = "run") -> Path:
@@ -30,12 +31,25 @@ def main() -> None:
     documents = load_documents(settings.app.paths.raw_data_dir)
     logger.info("Loaded %d document(s) from raw data directory", len(documents))
 
+    processed_summary = write_processed_documents(
+        documents=documents,
+        output_dir=settings.app.paths.processed_data_dir,
+    )
+    logger.info(
+        "Wrote %d processed document artifact(s) to %s",
+        processed_summary["document_count"],
+        processed_summary["output_dir"],
+    )
+    logger.info("Processed manifest: %s", processed_summary["manifest_path"])
+
     marker_file = run_dir / "run_info.txt"
     marker_lines = [
         f"app_name={settings.app.app_name}",
         f"environment={settings.app.environment}",
         f"run_dir={run_dir}",
         f"document_count={len(documents)}",
+        f"processed_output_dir={processed_summary['output_dir']}",
+        f"processed_manifest={processed_summary['manifest_path']}",
     ]
 
     for doc in documents:
