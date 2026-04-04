@@ -12,6 +12,8 @@ class ChunkMetadata(BaseModel):
     page_number: int | None = None
     section_name: str | None = None
     source_type: str | None = None
+    source_filename: str | None = None
+    parser_name: str | None = None
     extra: dict[str, Any] = Field(default_factory=dict)
 
 

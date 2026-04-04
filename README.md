@@ -83,3 +83,7 @@ DriveIQ applies a lightweight normalization step after parsing to standardize wh
 ## Processed Document Artifacts
 
 After ingestion and normalization, DriveIQ writes processed document records to `data/processed/` as JSON artifacts. A manifest file is also produced to summarize the processed batch.
+
+## Chunk Building
+
+DriveIQ converts processed documents into retrieval-ready chunk records. The initial chunking strategy uses paragraph-style segmentation and preserves source traceability through chunk metadata such as source document ID, filename, and character offsets.
