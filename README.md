@@ -87,3 +87,7 @@ After ingestion and normalization, DriveIQ writes processed document records to 
 ## Chunk Building
 
 DriveIQ converts processed documents into retrieval-ready chunk records. The initial chunking strategy uses paragraph-style segmentation and preserves source traceability through chunk metadata such as source document ID, filename, and character offsets.
+
+## Configurable Chunking
+
+DriveIQ uses a configurable chunking strategy driven by `configs/retrieval.yaml`. The current implementation prefers paragraph-aware chunking, supports overlap, and preserves source traceability through chunk metadata.
