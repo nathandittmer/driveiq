@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 
 from driveiq.config import get_settings
 from driveiq.schemas.chunk import ChunkMetadata, ChunkRecord
@@ -12,6 +13,10 @@ class TextSpan:
     text: str
     start_char: int
     end_char: int
+
+
+SECTION_LINE_PATTERN = re.compile(r"^[A-Z][A-Za-z0-9\s&/\-]{1,80}$")
+TRANSCRIPT_SPEAKER_PATTERN = re.compile(r"^([A-Za-z0-9 _.-]+)\s+\(\d{2}:\d{2}\):")
 
 
 def split_into_paragraph_spans(text: str) -> list[TextSpan]:
@@ -53,13 +58,11 @@ def build_windowed_spans(
         chunk_text = text[start:end].strip()
 
         if chunk_text:
-            actual_start = start
-            actual_end = end
             spans.append(
                 TextSpan(
                     text=chunk_text,
-                    start_char=actual_start,
-                    end_char=actual_end,
+                    start_char=start,
+                    end_char=end,
                 )
             )
 
@@ -150,6 +153,55 @@ def _select_overlap_parts(parts: list[TextSpan], chunk_overlap: int) -> list[Tex
     return selected
 
 
+def infer_section_name(chunk_text: str) -> str | None:
+    lines = [line.strip() for line in chunk_text.splitlines() if line.strip()]
+    if not lines:
+        return None
+
+    first_line = lines[0]
+    if SECTION_LINE_PATTERN.match(first_line) and len(first_line.split()) <= 8:
+        return first_line
+
+    return None
+
+
+def infer_transcript_speaker(chunk_text: str) -> str | None:
+    lines = [line.strip() for line in chunk_text.splitlines() if line.strip()]
+    if not lines:
+        return None
+
+    match = TRANSCRIPT_SPEAKER_PATTERN.match(lines[0])
+    if match:
+        return match.group(1).strip()
+
+    return None
+
+
+def build_chunk_extra_metadata(
+    document: DocumentRecord,
+    chunk_text: str,
+    chunk_size: int,
+    chunk_overlap: int,
+) -> dict:
+    parser_name = document.metadata.extra.get("parser")
+    section_name = infer_section_name(chunk_text)
+    transcript_speaker = (
+        infer_transcript_speaker(chunk_text)
+        if document.document_type == "transcript"
+        else None
+    )
+
+    return {
+        "chunk_size": chunk_size,
+        "chunk_overlap": chunk_overlap,
+        "document_title": document.title,
+        "file_extension": document.metadata.file_extension,
+        "normalization_applied": document.metadata.extra.get("normalization_applied"),
+        "section_name_hint": section_name,
+        "transcript_speaker_hint": transcript_speaker,
+    }
+
+
 def build_chunks_for_document(
     document: DocumentRecord,
     chunk_size: int | None = None,
@@ -174,6 +226,8 @@ def build_chunks_for_document(
     chunks: list[ChunkRecord] = []
 
     for chunk_index, span in enumerate(text_spans):
+        section_name = infer_section_name(span.text)
+
         chunk = ChunkRecord(
             chunk_id=f"{document.document_id}_chunk_{chunk_index:03d}",
             document_id=document.document_id,
@@ -182,13 +236,17 @@ def build_chunks_for_document(
                 chunk_index=chunk_index,
                 start_char=span.start_char,
                 end_char=span.end_char,
+                page_number=None,
+                section_name=section_name,
                 source_type=document.document_type,
                 source_filename=source_filename,
                 parser_name=parser_name,
-                extra={
-                    "chunk_size": chunk_size,
-                    "chunk_overlap": chunk_overlap,
-                },
+                extra=build_chunk_extra_metadata(
+                    document=document,
+                    chunk_text=span.text,
+                    chunk_size=chunk_size,
+                    chunk_overlap=chunk_overlap,
+                ),
             ),
         )
         chunks.append(chunk)

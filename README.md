@@ -91,3 +91,7 @@ DriveIQ converts processed documents into retrieval-ready chunk records. The ini
 ## Configurable Chunking
 
 DriveIQ uses a configurable chunking strategy driven by `configs/retrieval.yaml`. The current implementation prefers paragraph-aware chunking, supports overlap, and preserves source traceability through chunk metadata.
+
+## Chunk Metadata Enrichment
+
+DriveIQ enriches chunk records with source-aware metadata such as document title, file extension, normalization flags, and lightweight section or speaker hints. This supports better retrieval analysis, debugging, and future grounded response tracing.
