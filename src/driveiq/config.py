@@ -41,7 +41,7 @@ class RetrievalSettings(BaseModel):
 
 class EmbeddingConfig(BaseModel):
     provider: str = "sentence_transformers"
-    model_name: str = "all-MiniLM-L6-v2"
+    embedding_model_name: str = "all-MiniLM-L6-v2"
 
 
 class RetrievalConfig(BaseModel):
