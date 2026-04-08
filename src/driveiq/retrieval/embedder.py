@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol
 
+from sentence_transformers import SentenceTransformer
+
 from driveiq.config import get_settings
 
 
@@ -28,7 +30,6 @@ class DummyEmbeddingProvider:
         self.provider_name = provider_name
 
     def embed_text(self, text: str) -> EmbeddingResult:
-        # Placeholder deterministic vector for interface testing only.
         length = float(len(text))
         word_count = float(len(text.split()))
         line_count = float(len(text.splitlines()))
@@ -45,14 +46,47 @@ class DummyEmbeddingProvider:
         return [self.embed_text(text) for text in texts]
 
 
+class SentenceTransformerEmbeddingProvider:
+    def __init__(self, model_name: str) -> None:
+        self.model_name = model_name
+        self.provider_name = "sentence_transformers"
+        self.model = SentenceTransformer(model_name)
+
+    def embed_text(self, text: str) -> EmbeddingResult:
+        vector = self.model.encode(text, convert_to_numpy=True).tolist()
+        return EmbeddingResult(
+            text=text,
+            vector=vector,
+            model_name=self.model_name,
+            provider=self.provider_name,
+        )
+
+    def embed_texts(self, texts: list[str]) -> list[EmbeddingResult]:
+        vectors = self.model.encode(texts, convert_to_numpy=True).tolist()
+
+        return [
+            EmbeddingResult(
+                text=text,
+                vector=vector,
+                model_name=self.model_name,
+                provider=self.provider_name,
+            )
+            for text, vector in zip(texts, vectors, strict=False)
+        ]
+
+
 def get_embedding_provider() -> EmbeddingProvider:
     settings = get_settings()
     provider_name = settings.retrieval.embedding.provider
     model_name = settings.retrieval.embedding.embedding_model_name
 
-    # For Day 16, return a dummy provider even if config says sentence_transformers.
-    # This keeps the interface stable while the real model is added on Day 17.
-    return DummyEmbeddingProvider(
-        model_name=model_name,
-        provider_name=f"{provider_name}_stub",
-    )
+    if provider_name == "sentence_transformers":
+        return SentenceTransformerEmbeddingProvider(model_name=model_name)
+
+    if provider_name == "dummy":
+        return DummyEmbeddingProvider(
+            model_name=model_name,
+            provider_name="dummy",
+        )
+
+    raise ValueError(f"Unsupported embedding provider: {provider_name}")
