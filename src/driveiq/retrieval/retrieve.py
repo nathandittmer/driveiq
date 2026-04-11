@@ -4,6 +4,7 @@ import math
 
 from driveiq.config import get_settings
 from driveiq.retrieval.embedder import get_embedding_provider
+from driveiq.retrieval.ranker import rerank_scored_records
 from driveiq.retrieval.vector_store import StoredVectorRecord, load_vector_store
 from driveiq.schemas.response import RetrievedChunk, SearchResponse
 
@@ -49,7 +50,8 @@ def retrieve_top_k(
     records = load_vector_store(index_dir)
 
     scored_records = score_query_against_records(query_embedding.vector, records)
-    top_records = scored_records[:effective_top_k]
+    reranked_records = rerank_scored_records(query, scored_records)
+    top_records = reranked_records[:effective_top_k]
 
     results = [
         RetrievedChunk(
