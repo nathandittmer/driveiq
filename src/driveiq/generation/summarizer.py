@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import Counter
 from uuid import uuid4
 
 from driveiq.generation.prompts import (
@@ -34,6 +35,30 @@ def simple_extractive_summary(text: str, max_sentences: int = 3) -> str:
     return summary
 
 
+def build_trace_metadata(chunks: list[RetrievedChunk]) -> dict:
+    source_filenames = [
+        chunk.metadata.get("source_filename")
+        for chunk in chunks
+        if chunk.metadata.get("source_filename")
+    ]
+    source_types = [
+        chunk.metadata.get("source_type")
+        for chunk in chunks
+        if chunk.metadata.get("source_type")
+    ]
+
+    filename_counts = Counter(source_filenames)
+    source_type_counts = Counter(source_types)
+
+    return {
+        "supporting_chunk_count": len(chunks),
+        "retrieved_sources": source_filenames,
+        "retrieved_source_types": source_types,
+        "top_source_files": filename_counts.most_common(3),
+        "top_source_types": source_type_counts.most_common(3),
+    }
+
+
 def summarize_document(document: DocumentRecord) -> SummaryResponse:
     prompt = build_summary_prompt(
         document_text=document.text,
@@ -50,6 +75,10 @@ def summarize_document(document: DocumentRecord) -> SummaryResponse:
         metadata={
             "generation_mode": "extractive_fallback",
             "document_title": document.title,
+            "document_type": document.document_type,
+            "source_filename": document.metadata.filename,
+            "source_type": document.document_type,
+            "character_count": len(document.text),
             "prompt_preview": prompt[:300],
         },
     )
@@ -93,6 +122,7 @@ def build_cross_document_brief(
     )
 
     brief_text = simple_cross_document_brief(retrieval_response.results)
+    trace_metadata = build_trace_metadata(retrieval_response.results)
 
     return SummaryResponse(
         request_id=f"brief_{uuid4().hex[:12]}",
@@ -103,9 +133,6 @@ def build_cross_document_brief(
             "generation_mode": "cross_document_fallback",
             "user_goal": user_goal,
             "prompt_preview": prompt[:300],
-            "retrieved_sources": [
-                chunk.metadata.get("source_filename")
-                for chunk in retrieval_response.results
-            ],
+            **trace_metadata,
         },
     )

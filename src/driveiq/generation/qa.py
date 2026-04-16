@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import Counter
 from uuid import uuid4
 
 from driveiq.generation.prompts import build_grounded_qa_prompt
@@ -18,6 +19,30 @@ def simple_grounded_answer(chunks: list[RetrievedChunk]) -> str:
     return top_chunk[:300] + ("..." if len(top_chunk) > 300 else "")
 
 
+def build_trace_metadata(chunks: list[RetrievedChunk]) -> dict:
+    source_filenames = [
+        chunk.metadata.get("source_filename")
+        for chunk in chunks
+        if chunk.metadata.get("source_filename")
+    ]
+    source_types = [
+        chunk.metadata.get("source_type")
+        for chunk in chunks
+        if chunk.metadata.get("source_type")
+    ]
+
+    filename_counts = Counter(source_filenames)
+    source_type_counts = Counter(source_types)
+
+    return {
+        "supporting_chunk_count": len(chunks),
+        "retrieved_sources": source_filenames,
+        "retrieved_source_types": source_types,
+        "top_source_files": filename_counts.most_common(3),
+        "top_source_types": source_type_counts.most_common(3),
+    }
+
+
 def answer_question(query: str, top_k: int = 5) -> QAResponse:
     retrieval_response = retrieve_top_k(query, top_k=top_k)
 
@@ -27,6 +52,7 @@ def answer_question(query: str, top_k: int = 5) -> QAResponse:
     )
 
     answer_text = simple_grounded_answer(retrieval_response.results)
+    trace_metadata = build_trace_metadata(retrieval_response.results)
 
     return QAResponse(
         request_id=f"qa_{uuid4().hex[:12]}",
@@ -37,9 +63,6 @@ def answer_question(query: str, top_k: int = 5) -> QAResponse:
             "generation_mode": "grounded_fallback",
             "prompt_preview": prompt[:300],
             "top_k": top_k,
-            "retrieved_sources": [
-                chunk.metadata.get("source_filename")
-                for chunk in retrieval_response.results
-            ],
+            **trace_metadata,
         },
     )
