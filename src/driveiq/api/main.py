@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 from fastapi import FastAPI
+from pydantic import BaseModel, Field
 
 from driveiq.config import get_settings
 from driveiq.ingestion.loader import load_documents
 from driveiq.processing.chunker import build_chunks_for_documents
 from driveiq.retrieval.embedder import get_embedding_provider
+from driveiq.retrieval.retrieve import retrieve_top_k
 from driveiq.retrieval.vector_store import (
     build_stored_vector_record,
     write_vector_store,
 )
+from driveiq.schemas.response import SearchResponse
 
 
 settings = get_settings()
@@ -19,6 +22,11 @@ app = FastAPI(
     version="0.1.0",
     description="DriveIQ API for multimodal retrieval and summarization workflows.",
 )
+
+
+class SearchRequest(BaseModel):
+    query: str = Field(..., min_length=1, description="User search query")
+    top_k: int = Field(default=5, ge=1, le=20, description="Number of results to return")
 
 
 @app.get("/")
@@ -72,3 +80,12 @@ def run_indexing_pipeline() -> dict:
 @app.post("/index")
 def index_documents() -> dict:
     return run_indexing_pipeline()
+
+
+@app.post("/search", response_model=SearchResponse)
+def search_documents(request: SearchRequest) -> SearchResponse:
+    return retrieve_top_k(
+        query=request.query,
+        top_k=request.top_k,
+        index_dir=settings.app.paths.index_data_dir,
+    )
