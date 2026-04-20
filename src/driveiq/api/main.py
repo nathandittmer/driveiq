@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from fastapi import FastAPI
-from pydantic import BaseModel, Field
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel, Field, model_validator
 
 from driveiq.config import get_settings
+from driveiq.generation.summarizer import summarize_document
 from driveiq.ingestion.loader import load_documents
 from driveiq.processing.chunker import build_chunks_for_documents
 from driveiq.retrieval.embedder import get_embedding_provider
@@ -12,7 +13,7 @@ from driveiq.retrieval.vector_store import (
     build_stored_vector_record,
     write_vector_store,
 )
-from driveiq.schemas.response import SearchResponse
+from driveiq.schemas.response import SearchResponse, SummaryResponse
 
 
 settings = get_settings()
@@ -27,6 +28,17 @@ app = FastAPI(
 class SearchRequest(BaseModel):
     query: str = Field(..., min_length=1, description="User search query")
     top_k: int = Field(default=5, ge=1, le=20, description="Number of results to return")
+
+
+class SummarizeRequest(BaseModel):
+    filename: str | None = Field(default=None, description="Filename to summarize")
+    document_id: str | None = Field(default=None, description="Document ID to summarize")
+
+    @model_validator(mode="after")
+    def validate_identifier(self) -> "SummarizeRequest":
+        if not self.filename and not self.document_id:
+            raise ValueError("Either filename or document_id must be provided")
+        return self
 
 
 @app.get("/")
@@ -89,3 +101,30 @@ def search_documents(request: SearchRequest) -> SearchResponse:
         top_k=request.top_k,
         index_dir=settings.app.paths.index_data_dir,
     )
+
+
+@app.post("/summarize", response_model=SummaryResponse)
+def summarize(request: SummarizeRequest) -> SummaryResponse:
+    documents = load_documents(settings.app.paths.raw_data_dir)
+
+    matched_document = None
+
+    if request.document_id:
+        matched_document = next(
+            (doc for doc in documents if doc.document_id == request.document_id),
+            None,
+        )
+
+    if not matched_document and request.filename:
+        matched_document = next(
+            (doc for doc in documents if doc.metadata.filename == request.filename),
+            None,
+        )
+
+    if not matched_document:
+        raise HTTPException(
+            status_code=404,
+            detail="Document not found for the provided filename or document_id.",
+        )
+
+    return summarize_document(matched_document)
