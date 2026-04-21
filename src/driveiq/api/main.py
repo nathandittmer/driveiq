@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field, model_validator
 
 from driveiq.config import get_settings
+from driveiq.generation.qa import answer_question
 from driveiq.generation.summarizer import summarize_document
 from driveiq.ingestion.loader import load_documents
 from driveiq.processing.chunker import build_chunks_for_documents
@@ -13,7 +14,7 @@ from driveiq.retrieval.vector_store import (
     build_stored_vector_record,
     write_vector_store,
 )
-from driveiq.schemas.response import SearchResponse, SummaryResponse
+from driveiq.schemas.response import QAResponse, SearchResponse, SummaryResponse
 
 
 settings = get_settings()
@@ -28,6 +29,11 @@ app = FastAPI(
 class SearchRequest(BaseModel):
     query: str = Field(..., min_length=1, description="User search query")
     top_k: int = Field(default=5, ge=1, le=20, description="Number of results to return")
+
+
+class AskRequest(BaseModel):
+    query: str = Field(..., min_length=1, description="User question")
+    top_k: int = Field(default=5, ge=1, le=20, description="Number of retrieved chunks to use")
 
 
 class SummarizeRequest(BaseModel):
@@ -128,3 +134,11 @@ def summarize(request: SummarizeRequest) -> SummaryResponse:
         )
 
     return summarize_document(matched_document)
+
+
+@app.post("/ask", response_model=QAResponse)
+def ask_question(request: AskRequest) -> QAResponse:
+    return answer_question(
+        query=request.query,
+        top_k=request.top_k,
+    )
