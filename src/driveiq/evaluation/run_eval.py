@@ -4,12 +4,16 @@ import json
 from pathlib import Path
 
 from driveiq.config import get_settings
-from driveiq.evaluation.dataset import load_eval_examples
+from driveiq.evaluation.dataset import EvalExample, load_eval_examples
+from driveiq.evaluation.judge import GenerationQualityResult, evaluate_generation_quality
 from driveiq.evaluation.metrics import (
     RetrievalEvalResult,
     compute_hit_rate,
     compute_retrieval_hit,
 )
+from driveiq.generation.qa import answer_question
+from driveiq.ingestion.loader import load_documents
+from driveiq.generation.summarizer import summarize_document
 from driveiq.retrieval.retrieve import retrieve_top_k
 
 
@@ -53,6 +57,94 @@ def run_retrieval_eval(
     }
 
 
+def run_qa_eval(
+    eval_path: str = "data/eval/qa_eval.json",
+    top_k: int = 5,
+) -> dict:
+    examples = load_eval_examples(eval_path)
+    results: list[GenerationQualityResult] = []
+
+    for example in examples:
+        response = answer_question(example.query, top_k=top_k)
+        retrieved_files = response.metadata.get("retrieved_sources", [])
+
+        results.append(
+            evaluate_generation_quality(
+                example_id=example.example_id,
+                task_type=example.task_type,
+                query=example.query,
+                output_text=response.answer_text,
+                expected_source_files=example.expected_source_files,
+                retrieved_source_files=retrieved_files,
+            )
+        )
+
+    passed_count = sum(1 for result in results if result.passed)
+
+    return {
+        "eval_type": "qa",
+        "top_k": top_k,
+        "example_count": len(results),
+        "pass_rate": passed_count / len(results) if results else 0.0,
+        "results": [result.__dict__ for result in results],
+    }
+
+
+def find_document_for_summary(example: EvalExample):
+    documents = load_documents("data/raw")
+    expected_files = set(example.expected_source_files)
+
+    return next(
+        (doc for doc in documents if doc.metadata.filename in expected_files),
+        None,
+    )
+
+
+def run_summary_eval(
+    eval_path: str = "data/eval/summary_eval.json",
+) -> dict:
+    examples = load_eval_examples(eval_path)
+    results: list[GenerationQualityResult] = []
+
+    for example in examples:
+        document = find_document_for_summary(example)
+
+        if not document:
+            results.append(
+                evaluate_generation_quality(
+                    example_id=example.example_id,
+                    task_type=example.task_type,
+                    query=example.query,
+                    output_text="",
+                    expected_source_files=example.expected_source_files,
+                    retrieved_source_files=[],
+                )
+            )
+            continue
+
+        response = summarize_document(document)
+
+        results.append(
+            evaluate_generation_quality(
+                example_id=example.example_id,
+                task_type=example.task_type,
+                query=example.query,
+                output_text=response.summary_text,
+                expected_source_files=example.expected_source_files,
+                retrieved_source_files=[document.metadata.filename],
+            )
+        )
+
+    passed_count = sum(1 for result in results if result.passed)
+
+    return {
+        "eval_type": "summary",
+        "example_count": len(results),
+        "pass_rate": passed_count / len(results) if results else 0.0,
+        "results": [result.__dict__ for result in results],
+    }
+
+
 def write_eval_report(report: dict, output_path: str) -> None:
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -61,10 +153,21 @@ def write_eval_report(report: dict, output_path: str) -> None:
 
 def main() -> None:
     settings = get_settings()
-    report = run_retrieval_eval(top_k=settings.retrieval.retrieval.top_k)
-    output_path = "artifacts/reports/retrieval_eval_report.json"
-    write_eval_report(report, output_path)
-    print(json.dumps(report, indent=2))
+
+    retrieval_report = run_retrieval_eval(top_k=settings.retrieval.retrieval.top_k)
+    qa_report = run_qa_eval(top_k=settings.retrieval.retrieval.top_k)
+    summary_report = run_summary_eval()
+
+    combined_report = {
+        "eval_type": "combined",
+        "retrieval": retrieval_report,
+        "qa": qa_report,
+        "summary": summary_report,
+    }
+
+    output_path = "artifacts/reports/combined_eval_report.json"
+    write_eval_report(combined_report, output_path)
+    print(json.dumps(combined_report, indent=2))
 
 
 if __name__ == "__main__":
