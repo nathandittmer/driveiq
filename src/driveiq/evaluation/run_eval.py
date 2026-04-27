@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, UTC
 from pathlib import Path
 
 from driveiq.config import get_settings
@@ -12,13 +13,18 @@ from driveiq.evaluation.metrics import (
     compute_retrieval_hit,
 )
 from driveiq.generation.qa import answer_question
-from driveiq.ingestion.loader import load_documents
 from driveiq.generation.summarizer import summarize_document
+from driveiq.ingestion.loader import load_documents
 from driveiq.retrieval.retrieve import retrieve_top_k
 
 
+RETRIEVAL_EVAL_PATH = "data/eval/retrieval_eval.json"
+QA_EVAL_PATH = "data/eval/qa_eval.json"
+SUMMARY_EVAL_PATH = "data/eval/summary_eval.json"
+
+
 def run_retrieval_eval(
-    eval_path: str = "data/eval/retrieval_eval.json",
+    eval_path: str = RETRIEVAL_EVAL_PATH,
     top_k: int = 3,
 ) -> dict:
     examples = load_eval_examples(eval_path)
@@ -50,6 +56,7 @@ def run_retrieval_eval(
 
     return {
         "eval_type": "retrieval",
+        "eval_path": eval_path,
         "top_k": top_k,
         "example_count": len(results),
         "hit_rate": compute_hit_rate(results),
@@ -58,7 +65,7 @@ def run_retrieval_eval(
 
 
 def run_qa_eval(
-    eval_path: str = "data/eval/qa_eval.json",
+    eval_path: str = QA_EVAL_PATH,
     top_k: int = 5,
 ) -> dict:
     examples = load_eval_examples(eval_path)
@@ -83,6 +90,7 @@ def run_qa_eval(
 
     return {
         "eval_type": "qa",
+        "eval_path": eval_path,
         "top_k": top_k,
         "example_count": len(results),
         "pass_rate": passed_count / len(results) if results else 0.0,
@@ -101,7 +109,7 @@ def find_document_for_summary(example: EvalExample):
 
 
 def run_summary_eval(
-    eval_path: str = "data/eval/summary_eval.json",
+    eval_path: str = SUMMARY_EVAL_PATH,
 ) -> dict:
     examples = load_eval_examples(eval_path)
     results: list[GenerationQualityResult] = []
@@ -139,9 +147,39 @@ def run_summary_eval(
 
     return {
         "eval_type": "summary",
+        "eval_path": eval_path,
         "example_count": len(results),
         "pass_rate": passed_count / len(results) if results else 0.0,
         "results": [result.__dict__ for result in results],
+    }
+
+
+def build_combined_eval_report() -> dict:
+    settings = get_settings()
+    top_k = settings.retrieval.retrieval.top_k
+
+    retrieval_report = run_retrieval_eval(top_k=top_k)
+    qa_report = run_qa_eval(top_k=top_k)
+    summary_report = run_summary_eval()
+
+    return {
+        "eval_type": "combined",
+        "generated_at": datetime.now(tz=UTC).isoformat(),
+        "config": {
+            "top_k": top_k,
+            "embedding_provider": settings.retrieval.embedding.provider,
+            "embedding_model_name": settings.retrieval.embedding.embedding_model_name,
+            "chunk_size": settings.retrieval.chunking.chunk_size,
+            "chunk_overlap": settings.retrieval.chunking.chunk_overlap,
+        },
+        "summary": {
+            "retrieval_hit_rate": retrieval_report["hit_rate"],
+            "qa_pass_rate": qa_report["pass_rate"],
+            "summary_pass_rate": summary_report["pass_rate"],
+        },
+        "retrieval": retrieval_report,
+        "qa": qa_report,
+        "summary_eval": summary_report,
     }
 
 
@@ -152,22 +190,10 @@ def write_eval_report(report: dict, output_path: str) -> None:
 
 
 def main() -> None:
-    settings = get_settings()
-
-    retrieval_report = run_retrieval_eval(top_k=settings.retrieval.retrieval.top_k)
-    qa_report = run_qa_eval(top_k=settings.retrieval.retrieval.top_k)
-    summary_report = run_summary_eval()
-
-    combined_report = {
-        "eval_type": "combined",
-        "retrieval": retrieval_report,
-        "qa": qa_report,
-        "summary": summary_report,
-    }
-
+    report = build_combined_eval_report()
     output_path = "artifacts/reports/combined_eval_report.json"
-    write_eval_report(combined_report, output_path)
-    print(json.dumps(combined_report, indent=2))
+    write_eval_report(report, output_path)
+    print(json.dumps(report, indent=2))
 
 
 if __name__ == "__main__":
