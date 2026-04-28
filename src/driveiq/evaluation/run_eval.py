@@ -14,6 +14,11 @@ from driveiq.evaluation.metrics import (
 )
 from driveiq.generation.qa import answer_question
 from driveiq.generation.summarizer import summarize_document
+from driveiq.generation.prompts import(
+    CROSS_DOCUMENT_BRIEF_PROMPT_VERSION,
+    GROUNDED_QA_PROMPT_VERSION,
+    SUMMARY_PROMPT_VERSION,
+)
 from driveiq.ingestion.loader import load_documents
 from driveiq.retrieval.retrieve import retrieve_top_k
 
@@ -171,6 +176,11 @@ def build_combined_eval_report() -> dict:
             "embedding_model_name": settings.retrieval.embedding.embedding_model_name,
             "chunk_size": settings.retrieval.chunking.chunk_size,
             "chunk_overlap": settings.retrieval.chunking.chunk_overlap,
+            "prompt_versions": {
+                "summary": SUMMARY_PROMPT_VERSION,
+                "grounded_qa": GROUNDED_QA_PROMPT_VERSION,
+                "cross_document_brief": CROSS_DOCUMENT_BRIEF_PROMPT_VERSION,
+            },
         },
         "summary": {
             "retrieval_hit_rate": retrieval_report["hit_rate"],

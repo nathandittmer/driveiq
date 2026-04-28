@@ -3,7 +3,10 @@ from __future__ import annotations
 from collections import Counter
 from uuid import uuid4
 
-from driveiq.generation.prompts import build_grounded_qa_prompt
+from driveiq.generation.prompts import (
+    GROUNDED_QA_PROMPT_VERSION,
+    build_grounded_qa_prompt,
+)
 from driveiq.retrieval.retrieve import retrieve_top_k
 from driveiq.schemas.response import QAResponse, RetrievedChunk
 
@@ -61,6 +64,7 @@ def answer_question(query: str, top_k: int = 5) -> QAResponse:
         supporting_chunk_ids=[chunk.chunk_id for chunk in retrieval_response.results],
         metadata={
             "generation_mode": "grounded_fallback",
+            "prompt_version": GROUNDED_QA_PROMPT_VERSION,
             "prompt_preview": prompt[:300],
             "top_k": top_k,
             **trace_metadata,

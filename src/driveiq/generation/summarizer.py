@@ -4,6 +4,8 @@ from collections import Counter
 from uuid import uuid4
 
 from driveiq.generation.prompts import (
+    CROSS_DOCUMENT_BRIEF_PROMPT_VERSION,
+    SUMMARY_PROMPT_VERSION,
     build_cross_document_brief_prompt,
     build_summary_prompt,
 )
@@ -80,6 +82,7 @@ def summarize_document(document: DocumentRecord) -> SummaryResponse:
             "source_type": document.document_type,
             "character_count": len(document.text),
             "prompt_preview": prompt[:300],
+            "prompt_version": SUMMARY_PROMPT_VERSION,
         },
     )
 
@@ -133,6 +136,7 @@ def build_cross_document_brief(
             "generation_mode": "cross_document_fallback",
             "user_goal": user_goal,
             "prompt_preview": prompt[:300],
+            "prompt_version": CROSS_DOCUMENT_BRIEF_PROMPT_VERSION,
             **trace_metadata,
         },
     )

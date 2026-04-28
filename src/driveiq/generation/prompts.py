@@ -3,6 +3,12 @@ from __future__ import annotations
 from driveiq.schemas.response import RetrievedChunk
 
 
+SUMMARY_PROMPT_VERSION = "summary_v1"
+GROUNDED_QA_PROMPT_VERSION = "grounded_qa_v1"
+CROSS_DOCUMENT_BRIEF_PROMPT_VERSION = "cross_document_brief_v1"
+ACTION_ITEMS_PROMPT_VERSION = "action_items_v1"
+
+
 def format_retrieved_chunks(chunks: list[RetrievedChunk]) -> str:
     if not chunks:
         return "No supporting context was retrieved."
