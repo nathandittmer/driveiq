@@ -6,6 +6,7 @@ from pathlib import Path
 
 from driveiq.config import get_settings
 from driveiq.evaluation.dataset import EvalExample, load_eval_examples
+from driveiq.evaluation.regression import compare_reports, write_comparison_report
 from driveiq.evaluation.judge import GenerationQualityResult, evaluate_generation_quality
 from driveiq.evaluation.metrics import (
     RetrievalEvalResult,
@@ -202,8 +203,24 @@ def write_eval_report(report: dict, output_path: str) -> None:
 def main() -> None:
     report = build_combined_eval_report()
     output_path = "artifacts/reports/combined_eval_report.json"
+    baseline_path = "artifacts/reports/baseline_eval_report.json"
+    comparison_path = "artifacts/reports/regression_comparison_report.json"
+
     write_eval_report(report, output_path)
     print(json.dumps(report, indent=2))
+
+    baseline_file = Path(baseline_path)
+    if not baseline_file.exists():
+        write_eval_report(report, baseline_path)
+        print(f"Baseline report created: {baseline_path}")
+        return
+
+    comparison_report = compare_reports(
+        current_report_path=output_path,
+        baseline_report_path=baseline_path,
+    )
+    write_comparison_report(comparison_report, comparison_path)
+    print(json.dumps(comparison_report, indent=2))
 
 
 if __name__ == "__main__":
