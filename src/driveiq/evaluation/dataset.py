@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 
 EvalTaskType = Literal["retrieval", "qa", "summary"]
+IntentLabel = Literal["search", "ask", "summarize", "brief", "action_items"]
 
 
 class EvalExample(BaseModel):
@@ -16,6 +17,12 @@ class EvalExample(BaseModel):
     query: str
     expected_source_files: list[str] = Field(default_factory=list)
     notes: str | None = None
+
+
+class IntentExample(BaseModel):
+    example_id: str
+    query: str
+    intent: IntentLabel
 
 
 def load_eval_examples(path: str) -> list[EvalExample]:
@@ -30,3 +37,17 @@ def load_eval_examples(path: str) -> list[EvalExample]:
         raise ValueError("Evaluation dataset must be a list of examples.")
 
     return [EvalExample(**example) for example in raw_examples]
+
+
+def load_intent_examples(path: str) -> list[IntentExample]:
+    eval_path = Path(path)
+
+    if not eval_path.exists():
+        raise FileNotFoundError(f"Intent dataset not found: {eval_path}")
+
+    raw_examples = json.loads(eval_path.read_text(encoding="utf-8"))
+
+    if not isinstance(raw_examples, list):
+        raise ValueError("Intent dataset must be a list of examples.")
+
+    return [IntentExample(**example) for example in raw_examples]
